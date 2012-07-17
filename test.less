@@ -1,0 +1,18 @@
+grid {
+    display: block;
+    background: black;
+
+    terrain {
+        @size: 40px;
+
+        float: left;
+        width: @size;
+        height: @size;
+        border: black 1px solid;
+
+        &:before, &:after {
+            content: '';
+            display: none;
+        }
+    }
+}
