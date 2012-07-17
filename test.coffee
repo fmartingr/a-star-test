@@ -1,7 +1,7 @@
 class Grid
   terrain: []
 
-  constructor: () ->
+  constructor: ->
     @element = document.getElementsByTagName('grid')[0]
     @x = parseInt @element.getAttribute 'x'
     @y = parseInt @element.getAttribute 'y'
@@ -9,7 +9,7 @@ class Grid
       @error 'Could not found <grid> in DOM!'
       false
     else
-      @log("#{@x}x#{@y} grid created.")
+      @log "#{@x}x#{@y} grid created."
       @makeTerrain()
       @showTerrain()
 
