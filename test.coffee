@@ -20,25 +20,28 @@ class Grid
   showTerrain: ->
     yy = 0
     xx = 0
-    for y in @terrain
-      if yy < 20 then yy++ else yy = 1
-      for x in y
-        if xx < 20 then xx++ else xx = 1
-        element = document.createElement 'Terrain'
-        element.setAttribute 'x', xx
-        element.setAttribute 'y', yy
-        element.style.background = x.color
-        @element.appendChild(element)
     for y in [1..@y]
       if yy < @y then yy++ else yy = 1
       for x in [1..@x]
         if xx < @x then xx++ else xx = 1
+        #@log "#{xx} #{yy}"
+        @makeGrid xx, yy, x
 
     element = document.getElementsByTagName('terrain')[0]
     gridSize = (parseInt element.scrollHeight * @x)
     @element.style.width = "#{gridSize}px";
-    console.log @element.style.width
+    @log @element.style.width
 
+  makeGrid: (_x, _y, _terrain) ->
+    element = document.createElement 'terrain'
+    element.setAttribute 'x', _x
+    element.setAttribute 'y', _y
+    element.style.background = _terrain.color
+    @element.appendChild element
+    @terrain[_y][_x]?.element = $$("terrain[x='#{_x}'][y='#{_y}']").get(0)
+
+  makeSolid: (_x, _y) ->
+    @terrain[_y][_x].setType()
 
   error: (msg) ->
     console.error msg
@@ -51,9 +54,13 @@ class Terrain
   # types: air, liquid, solid
   type: 'air'
   color: 'white'
+  element: null
 
   isSolid: ->
     @type is not 'air'
+
+  setType: (_type = "solid") ->
+    @type = _type
 
 ###
 class Air extends Terrain
