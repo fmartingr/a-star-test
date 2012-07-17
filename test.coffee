@@ -14,8 +14,8 @@ class Grid
       @showTerrain()
 
   makeTerrain: ->
-    for y in [1..@y]
-      @terrain.push (new Terrain for x in [1..@x])
+    for y in [0..@y]
+      @terrain.push (new Terrain for x in [0..@x])
 
   showTerrain: ->
     yy = 0
@@ -29,6 +29,10 @@ class Grid
         element.setAttribute 'y', yy
         element.style.background = x.color
         @element.appendChild(element)
+    for y in [1..@y]
+      if yy < @y then yy++ else yy = 1
+      for x in [1..@x]
+        if xx < @x then xx++ else xx = 1
 
     element = document.getElementsByTagName('terrain')[0]
     gridSize = (parseInt element.scrollHeight * @x)
