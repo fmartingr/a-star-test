@@ -21,7 +21,7 @@ class Grid
 
   makeTerrain: ->
     for y in [0..@y]
-      @terrain.push (new Terrain for x in [0..@x])
+      @terrain.push (new Terrain(x, y) for x in [0..@x])
 
   showTerrain: ->
     yy = 0
@@ -30,11 +30,10 @@ class Grid
       if yy < @y then yy++ else yy = 1
       for x in [1..@x]
         if xx < @x then xx++ else xx = 1
-        #@log "#{xx} #{yy}"
         @makeGrid xx, yy, x
 
     element = document.getElementsByTagName('terrain')[0]
-    gridSize = (parseInt element.scrollHeight * @x)
+    gridSize = parseInt(element.clientWidth) * @x + 2*@x
     @element.style.width = "#{gridSize}px"
     @log @element.style.width
 
@@ -118,9 +117,14 @@ class Terrain
   type: 'air'
   color: 'lightblue'
   image: 'dirt'
+  movement: 10
   element: null
   start: false
   end: false
+  parent: null
+  near: []
+
+  constructor: (@x, @y) ->
 
   isSolid: ->
     @type is not 'air'
@@ -142,6 +146,7 @@ class Terrain
     @setType()
     @color = 'brown'
     @image = 'cobblestone'
+    @movement = 0
     @updateElement()
 
   setWater: ->
@@ -149,6 +154,7 @@ class Terrain
     @setType 'liquid'
     @image = 'water'
     @color = 'blue'
+    @movement = 15
     @updateElement()
 
   setAir: ->
@@ -156,6 +162,7 @@ class Terrain
     @setType 'air'
     @image = 'dirt'
     @color = 'lightblue'
+    @movement = 10
     @updateElement()
 
   setStart: ->
@@ -164,6 +171,7 @@ class Terrain
     @start = true
     @color = 'green'
     @image = null;
+    @movement = 10
     @setType 'air'
     @updateElement()
 
@@ -173,6 +181,7 @@ class Terrain
     @end = true
     @color = 'red'
     @image = null;
+    @movement = 10
     @setType 'air'
     @updateElement()
 
@@ -184,64 +193,105 @@ class Terrain
   setType: (_type = "solid") ->
     @type = _type
 
-###
-class Air extends Terrain
+  walkable: ->
+    @movementCost
+
+  getNearTerrain: ->
+    if not @near.length
+      @near = []
+      for x in [@x-1..@x+1]
+        for y in [@y-1..@y+1]
+          if not (@x == x and @y == y) and y != 0 and x != 0
+            if @x == x or @y == y # Avoid diagonals!
+              if grid.terrain[y]?[x]?
+                @near.push {'x': x, 'y': y}
+
+  highlight: (light = true) ->
+    if light
+      @element.style.backgroundColor = 'white'
+      @element.style.backgroundImage = ''
+    else
+      @updateElement()
+
+  highlightNear: (light = true) ->
+    @getNearTerrain()
+    for terrain in @near
+      grid.terrain[terrain.y][terrain.x].highlight(light)
 
 
-class Water extends Terrain
-  type: 'liquid'
-  color: 'blue'
-
-class Rock extends Terrain
-  type: 'solid'
-  color: 'brown'
-###
 
 grid = new Grid
 
 $$('body').ready ->
   drawing = false
   drawingWhat = null
+  calculating = false
+  calculatingWhat = null
 
   $$('button.drawSolidButton').on 'click', ->
     drawing = true
+    calculating = false
     drawingWhat = 'solid'
 
   $$('button.drawWaterButton').on 'click', ->
     drawing = true
+    calculating = false
     drawingWhat = 'water'
 
   $$('button.drawAirButton').on 'click', ->
     drawing = true
+    calculating = false
     drawingWhat = 'air'
 
   $$('button.drawStartPoint').on 'click', ->
     drawing = true
+    calculating = false
     drawingWhat = 'start'
 
   $$('button.drawEndPoint').on 'click', ->
     drawing = true
+    calculating = false
     drawingWhat = 'end'
 
+  $$('button.calcNearButton').on 'click', ->
+    drawing = false
+    calculating = true
+    calculatingWhat = 'near'
+
+  $$('button.hoverNearButton').on 'click', ->
+    drawing = false
+    calculating = true
+    calculatingWhat = 'hoverNear'
 
   $$('terrain').on 'click', ->
+    x = $$(@).attr('x')
+    y = $$(@).attr('y')
+    console.log "Clicked: #{x}, #{y}"
     if drawing
-      x = $$(@).attr('x')
-      y = $$(@).attr('y')
       grid.terrain[y][x].set(drawingWhat)
       switch drawingWhat
         when 'start' then grid.setStart x, y
         when 'end' then grid.setEnd x, y
 
+    if calculating
+      switch calculatingWhat
+        when 'near' then grid.terrain[y][x].getNearTerrain()
+        #when 'hoverNear' then grid.terrain[y][x].highlightNear()
 
+  $$('terrain').on 'mouseover', ->
+    x = $$(@).attr('x')
+    y = $$(@).attr('y')
+    if calculating
+      switch calculatingWhat
+        when 'hoverNear' then grid.terrain[y][x].highlightNear()
 
-
-
-
-
-
-
-
-
-
+  $$('terrain').on 'mouseout', ->
+    x = $$(@).attr('x')
+    y = $$(@).attr('y')
+    if calculating
+      switch calculatingWhat
+        when 'hoverNear'
+          grid.terrain[y][x].highlightNear(false)
+          for t in grid.terrain[y][x].near
+            console.log "#{t.x},#{t.y}"
 
