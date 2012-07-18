@@ -42,7 +42,29 @@ class Grid
     element = document.createElement 'terrain'
     element.setAttribute 'x', _x
     element.setAttribute 'y', _y
-    element.textContent = "#{_x},#{_y}"
+
+    # Position span
+    span = document.createElement 'span'
+    span.className = 'position'
+    element.appendChild span
+
+    # Distance span (F)
+    span = document.createElement 'span'
+    span.className = 'f'
+    element.appendChild span
+
+    # Movement cost (G)
+    span = document.createElement 'span'
+    span.className = 'g'
+    element.appendChild span
+
+    # Heuristic distance (H)
+    span = document.createElement 'span'
+    span.className = 'h'
+    element.appendChild span
+
+    $$(element).children('.position').text("#{_x},#{_y}")
+
     @element.appendChild element
     @terrain[_y][_x]?.element = $$("terrain[x='#{_x}'][y='#{_y}']").get(0)
     @terrain[_y][_x].updateElement()
@@ -95,6 +117,7 @@ class Terrain
 # types: air, liquid, solid
   type: 'air'
   color: 'lightblue'
+  image: 'dirt'
   element: null
   start: false
   end: false
@@ -118,17 +141,20 @@ class Terrain
     @unsetPoints()
     @setType()
     @color = 'brown'
+    @image = 'cobblestone'
     @updateElement()
 
   setWater: ->
     @unsetPoints()
     @setType 'liquid'
+    @image = 'water'
     @color = 'blue'
     @updateElement()
 
   setAir: ->
     @unsetPoints()
     @setType 'air'
+    @image = 'dirt'
     @color = 'lightblue'
     @updateElement()
 
@@ -137,6 +163,7 @@ class Terrain
     @unsetPoints()
     @start = true
     @color = 'green'
+    @image = null;
     @setType 'air'
     @updateElement()
 
@@ -145,12 +172,14 @@ class Terrain
     @unsetPoints()
     @end = true
     @color = 'red'
+    @image = null;
     @setType 'air'
     @updateElement()
 
   updateElement: ->
     if @element
       @element.style.backgroundColor = @color
+      @element.style.backgroundImage = "url('img/#{@image}.png')"
 
   setType: (_type = "solid") ->
     @type = _type

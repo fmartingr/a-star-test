@@ -1,25 +1,57 @@
+body {
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    text-shadow: #000 2px 2px 2px;
+}
+
 grid {
     display: block;
     background: black;
 
     terrain {
-        @size: 40px;
+        @size: 50px;
 
-        float: left;
-        width: @size;
-        height: @size;
         border: black 1px solid;
+        float: left;
+        height: @size;
+        position: relative;
+        width: @size;
 
         &:before, &:after {
             content: '';
             display: none;
+        }
+
+        span { position: absolute; }
+
+        .position {
+            right: 0;
+            top: 0;
+        }
+
+        .f {
+            left: 0;
+            top: 0;
+        }
+
+        .g {
+            bottom: 0;
+            left: 0;
+        }
+
+        .h {
+            bottom: 0;
+            right: 0;
         }
     }
 }
 
 .editor {
     bottom: 0;
+    color: black;
     padding: 5px;
     position: absolute;
     right: 0;
+    text-shadow: 0 0 0;
 }
