@@ -201,10 +201,11 @@ class Terrain
       @near = []
       for x in [@x-1..@x+1]
         for y in [@y-1..@y+1]
-          if not (@x == x and @y == y) and y != 0 and x != 0
-            if @x == x or @y == y # Avoid diagonals!
-              if grid.terrain[y]?[x]?
-                @near.push {'x': x, 'y': y}
+          if not (@x == x and @y == y)
+            if x != 0 and y != 0
+              if @x == x or @y == y # Avoid diagonals!
+                if grid.terrain[y]?[x]?.walkable?()
+                  @near.push {'x': x, 'y': y}
 
   highlight: (light = true) ->
     if light
