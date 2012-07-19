@@ -194,7 +194,7 @@ class Terrain
     @type = _type
 
   walkable: ->
-    @movementCost
+    @movement
 
   getNearTerrain: ->
     if not @near.length
