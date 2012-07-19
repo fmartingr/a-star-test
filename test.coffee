@@ -117,13 +117,15 @@ class Terrain
   type: 'air'
   color: 'lightblue'
   image: 'dirt'
-  movement: 10
+  movement: 10 # Movement value (NOT G!!)
   element: null
   start: false
   end: false
   parent: null
   near: []
-  manhattan: null
+  manhattan: null # Heuristic
+  path: 0 # total path value to this terrain (G)
+  pathValue: 0 # Heuristic + total path value (F)
 
   constructor: (@x, @y) ->
 
@@ -155,7 +157,7 @@ class Terrain
     @setType 'liquid'
     @image = 'water'
     @color = 'blue'
-    @movement = 15
+    @movement = 12
     @updateElement()
 
   setAir: ->
@@ -186,6 +188,15 @@ class Terrain
     @setType 'air'
     @updateElement()
 
+  colorOpen: ->
+    @element.style.border = 'green 1px solid'
+
+  colorClosed: ->
+    @element.style.border = 'blue 1px solid'
+
+  colorPath: ->
+    @element.style.border = 'yellow 1px solid'
+
   calculateManhattan: ->
     if grid.end.x?
       x = Math.abs @x - grid.end.x
@@ -194,10 +205,21 @@ class Terrain
       @manhattan = value
       $$(@element).children('.h').text "#{value}"
 
+  calculate: (path) ->
+    @calculateManhattan()
+    @path = path + @movement
+    #@path = path + 10 + (@movement - 10)
+    @pathValue = @path + @manhattan
+    $$(@element).children('.f').text @pathValue
+    $$(@element).children('.g').text @path
+
   updateElement: ->
     if @element
       @element.style.backgroundColor = @color
-      @element.style.backgroundImage = "url('img/#{@image}.png')"
+      if @image?
+        @element.style.backgroundImage = "url('img/#{@image}.png')"
+      else
+        @element.style.backgroundImage = ""
 
   setType: (_type = "solid") ->
     @type = _type
@@ -214,7 +236,7 @@ class Terrain
             if x != 0 and y != 0
               if @x == x or @y == y # Avoid diagonals!
                 if grid.terrain[y]?[x]?.walkable?()
-                  @near.push {'x': x, 'y': y}
+                  @near.push {'x': parseInt(x), 'y': parseInt(y)}
 
   highlight: (light = true) ->
     if light
@@ -229,8 +251,112 @@ class Terrain
       grid.terrain[terrain.y][terrain.x].highlight(light)
 
 
+class Path
+  @open: []
+  @closed: []
+  @path: []
+  @pathFound: false
 
-grid = new Grid
+  @started: null
+  @ended: null
+
+  constructor: ->
+
+  isInOpen: (x, y) ->
+    _is = false
+    for e in @open
+      _is = true if e.x is x and e.y is y
+
+    return _is
+
+  #orderOpen: ->
+  getLowestOpen: ->
+    if @open.length
+      lowestValue = 9999999
+      lowestTerrain = null
+      for e in @open
+        if grid.terrain[e.y][e.x].pathValue < lowestValue
+        #if grid.terrain[e.y][e.x].movement < lowestValue
+          lowestTerrain = {x: e.x, y: e.y }
+          lowestValue = grid.terrain[e.y][e.x].pathValue
+
+      return lowestTerrain
+
+  isInClosed: (x, y) ->
+    _is = false
+    for e in @closed
+      _is = true if e.x is x and e.y is y
+
+    return _is
+
+  moveToClosed: (x, y) ->
+    newOpen = []
+    for e in @open
+      if not (e.x is x and e.y is y)
+        newOpen.push e
+    @open = newOpen
+    @closed.push {x: x, y: y}
+
+  drawThisPath: ->
+    x = grid.end.x
+    y = grid.end.y
+    while not (x == grid.start.x and y == grid.start.y)
+      console.log "drawing #{x},#{y}"
+      terrain = grid.terrain[y][x]
+      terrain.colorPath()
+      x = terrain.parent.x
+      y = terrain.parent.y
+
+  calc: ->
+    if grid.start.x and grid.end.x and not @pathFound
+      @started = new Date().getMilliseconds()
+      @open = []
+      @closed = []
+      @path = []
+      @pathFound = false
+      @open.push {x: grid.start.x, y: grid.start.y}
+      while @open.length > 0 and not @pathFound
+        @step()
+
+  calc2: ->
+    if grid.start.x and grid.end.x and not @pathFound
+      @open = []
+      @closed = []
+      @path = []
+      @pathFound = false
+      @open.push {x: grid.start.x, y: grid.start.y}
+
+  step: ->
+    if not @pathFound
+      nowt = @getLowestOpen()
+      terrain = grid.terrain[nowt.y][nowt.x]
+      if terrain.parent?
+        terrain.calculate grid.terrain[terrain.parent.y][terrain.parent.x].path
+      else
+        terrain.calculate 0
+      @moveToClosed nowt.x, nowt.y
+      if nowt.x is grid.end.x and nowt.y is grid.end.y
+        @pathFound = true
+        @drawThisPath()
+        @ended = new Date().getMilliseconds()
+        console.log "Execution time: " + (@ended-@started) + "ms"
+        return true
+      terrain.colorClosed()
+      terrain.getNearTerrain()
+      for t in terrain.near
+        neart = grid.terrain[t.y][t.x]
+        # Still looking for a path
+        if @isInOpen t.x, t.y
+          if neart.path > (terrain.path + neart.movement)
+            neart.parent = {x: nowt.x, y: nowt.y}
+            neart.calculate(terrain.path)
+        else
+          if not @isInClosed t.x, t.y
+            @open.push {x: t.x, y: t.y}
+            grid.terrain[t.y][t.x].colorOpen()
+            neart.calculate(terrain.path)
+            neart.parent = {x: terrain.x, y: terrain.y}
+
 
 $$('body').ready ->
   drawing = false
@@ -273,9 +399,21 @@ $$('body').ready ->
     calculating = true
     calculatingWhat = 'hoverNear'
 
+  $$('button.calcRouteButton').on 'click', ->
+    path.calc()
+
+  $$('button.calc2RouteButton').on 'click', ->
+    path.calc2()
+
+  $$('button.calcStepButton').on 'click', ->
+    path.step()
+
+  $$('button.resetButton').on 'click', ->
+    window.location.reload()
+
   $$('terrain').on 'click', ->
-    x = $$(@).attr('x')
-    y = $$(@).attr('y')
+    x = parseInt $$(@).attr('x')
+    y = parseInt $$(@).attr('y')
     console.log "Clicked: #{x}, #{y}"
     if drawing
       grid.terrain[y][x].set(drawingWhat)
@@ -302,6 +440,7 @@ $$('body').ready ->
       switch calculatingWhat
         when 'hoverNear'
           grid.terrain[y][x].highlightNear(false)
+          grid.terrain[y][x].calculateManhattan()
           for t in grid.terrain[y][x].near
             console.log "#{t.x},#{t.y}"
 
