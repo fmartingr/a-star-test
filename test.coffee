@@ -123,6 +123,7 @@ class Terrain
   end: false
   parent: null
   near: []
+  manhattan: null
 
   constructor: (@x, @y) ->
 
@@ -184,6 +185,14 @@ class Terrain
     @movement = 10
     @setType 'air'
     @updateElement()
+
+  calculateManhattan: ->
+    if grid.end.x?
+      x = Math.abs @x - grid.end.x
+      y = Math.abs @y - grid.end.y
+      value = (x + y) * 10
+      @manhattan = value
+      $$(@element).children('.h').text "#{value}"
 
   updateElement: ->
     if @element
